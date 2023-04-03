@@ -1,15 +1,35 @@
 import os
 import pickle
+import sys
+from datetime import datetime
 
+from dotenv import load_dotenv
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+import logger as logger
 from jira_worklog_report import get_worklog_tickets
 
 # If modifying these SCOPES, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/documents', 'https://www.googleapis.com/auth/drive']
+load_dotenv()
+
+german_month_names = {
+    1: "Januar",
+    2: "Februar",
+    3: "März",
+    4: "April",
+    5: "Mai",
+    6: "Juni",
+    7: "Juli",
+    8: "August",
+    9: "September",
+    10: "Oktober",
+    11: "November",
+    12: "Dezember",
+}
 
 
 def _get_credentials_():
@@ -48,8 +68,12 @@ def _find_and_replace_(service, doc_id, find_text, replace_text):
     return result
 
 
-def create_invoice(template_id, year, month):
+def create_invoice():
     creds = _get_credentials_()
+
+    template_id = os.getenv('GOOGLE_DOCS_TEMPLATE_ID')
+    folder_id = os.getenv('GOOGLE_DRIVE_FOLDER_ID')
+
     try:
         service = build('docs', 'v1', credentials=creds)
 
@@ -62,24 +86,30 @@ def create_invoice(template_id, year, month):
         copied_doc = drive_service.files().copy(fileId=template_id, body=body).execute()
         doc_id = copied_doc['id']
 
+        # Get the month name in German
+        month_name_german = german_month_names[month]
+
+        # Get the current date
+        current_date = datetime.now().strftime("%d.%m.%Y")
+
         # Replace placeholders in the new document
         _find_and_replace_(service, doc_id, "{{YEAR}}", str(year))
-        _find_and_replace_(service, doc_id, "{{MONTH}}", f"{month:02d}")  # Use a two-digit format for the month
+        _find_and_replace_(service, doc_id, "{{MONTH}}", f"{month:02d}")
+        _find_and_replace_(service, doc_id, "{{MONTH_NAME_GERMAN}}", month_name_german)
+        _find_and_replace_(service, doc_id, "{{CURRENT_DATE}}", current_date)
         _find_and_replace_(service, doc_id, "{{TICKET_NUMBERS}}", ticket_ids)
 
-        print(f"Invoice created with ID: {doc_id}")
+        logger.info(f"Invoice created with ID: {doc_id}")
         return doc_id
 
     except HttpError as error:
-        print(f"An error occurred: {error}")
-        return None
+        logger.error(f"An error occurred: {error}")
 
 
 if __name__ == '__main__':
-    template_id = '1pF0SNyybAN9NOh-p7ktx-lyQZA3BABzX-cTb9Xm4NgU'
-    folder_id = '1xcd3q9O_qTJQUo9Wyajw_RE4TmTxoeGa'
-    year = 2023
-    month = 3
-    ticket_ids = get_worklog_tickets(month, year)
+    if len(sys.argv) != 3:
+        logger.error("Usage: python gdoc_invoice.py <month> <year>")
 
-    create_invoice(template_id, year, month)
+    month, year = int(sys.argv[1]), int(sys.argv[2])
+    ticket_ids = get_worklog_tickets(month, year)
+    create_invoice()

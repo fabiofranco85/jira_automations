@@ -5,6 +5,8 @@ from datetime import datetime
 from dotenv import load_dotenv
 from jira import JIRA
 
+import logger as logger
+
 
 def _process_env_():
     load_dotenv()
@@ -14,8 +16,7 @@ def _process_env_():
     project_key = os.getenv("PROJECT_KEY")
 
     if not jira_url or not username or not password or not project_key:
-        print("Please check if all required environment variables are set in the .env file.")
-        sys.exit(1)
+        logger.error("Please check if all required environment variables are set in the .env file.")
 
     return {
         'jira_instance': JIRA(jira_url, basic_auth=(username, password)),
@@ -24,6 +25,8 @@ def _process_env_():
 
 
 def get_worklog_tickets(month, year):
+    logger.info("Getting worklog tickets for the month of %s %s" % (month, year))
+
     env = _process_env_()
     jira_instance, project_key = env['jira_instance'], env['project_key']
 
@@ -36,13 +39,14 @@ def get_worklog_tickets(month, year):
     issues = jira_instance.search_issues(jql_query, maxResults=False)
     ticket_ids = [issue.key for issue in issues]
 
-    return ",\n".join(ticket_ids)
+    tickets_str = ",\n".join(ticket_ids)
+    logger.info("Tickets found: %s" % tickets_str)
+    return tickets_str
 
 
 def main():
     if len(sys.argv) != 3:
-        print("Usage: python jira_worklog_report.py <month> <year>")
-        sys.exit(1)
+        logger.error("Usage: python jira_worklog_report.py <month> <year>")
 
     month, year = int(sys.argv[1]), int(sys.argv[2])
     ticket_ids = get_worklog_tickets(month, year)
