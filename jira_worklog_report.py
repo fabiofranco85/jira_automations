@@ -39,9 +39,9 @@ def get_worklog_tickets(month, year):
     issues = jira_instance.search_issues(jql_query, maxResults=False)
     ticket_ids = [issue.key for issue in issues]
 
-    tickets_str = ",\n".join(ticket_ids)
+    tickets_str = ", ".join(ticket_ids)
     logger.info("Tickets found: %s" % tickets_str)
-    return tickets_str
+    return ticket_ids
 
 
 def main():

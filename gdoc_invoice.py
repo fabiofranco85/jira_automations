@@ -97,7 +97,7 @@ def create_invoice():
         _find_and_replace_(service, doc_id, "{{MONTH}}", f"{month:02d}")
         _find_and_replace_(service, doc_id, "{{MONTH_NAME_GERMAN}}", month_name_german)
         _find_and_replace_(service, doc_id, "{{CURRENT_DATE}}", current_date)
-        _find_and_replace_(service, doc_id, "{{TICKET_NUMBERS}}", ticket_ids)
+        _find_and_replace_(service, doc_id, "{{TICKET_NUMBERS}}", ",\n".join(ticket_ids))
 
         logger.info(f"Invoice created with ID: {doc_id}")
         return doc_id
