@@ -18,17 +18,14 @@ def _process_env_():
     if not jira_url or not username or not password or not project_key:
         logger.error("Please check if all required environment variables are set in the .env file.")
 
-    return {
-        'jira_instance': JIRA(jira_url, basic_auth=(username, password)),
-        'project_key': project_key
-    }
+    return JIRA(jira_url, basic_auth=(username, password)), project_key
 
 
-def get_worklog_tickets(month, year):
+def get_worked_tickets(month, year):
     logger.info("Getting worklog tickets for the month of %s %s" % (month, year))
 
     env = _process_env_()
-    jira_instance, project_key = env['jira_instance'], env['project_key']
+    jira_instance, project_key = env
 
     start_date = datetime(year, month, 1).strftime("%Y-%m-%d")
     end_date = datetime(year, month + 1, 1).strftime("%Y-%m-%d") if month < 12 else datetime(year + 1, 1, 1).strftime(
@@ -41,6 +38,7 @@ def get_worklog_tickets(month, year):
 
     tickets_str = ", ".join(ticket_ids)
     logger.info("Tickets found: %s" % tickets_str)
+
     return ticket_ids
 
 
@@ -49,7 +47,7 @@ def main():
         logger.error("Usage: python jira_worklog_report.py <month> <year>")
 
     month, year = int(sys.argv[1]), int(sys.argv[2])
-    ticket_ids = get_worklog_tickets(month, year)
+    ticket_ids = get_worked_tickets(month, year)
 
     print(ticket_ids)
 
