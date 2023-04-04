@@ -100,6 +100,21 @@ def create_invoice():
         _find_and_replace_(service, doc_id, "{{TICKET_NUMBERS}}", ",\n".join(ticket_ids))
 
         logger.info(f"Invoice created with ID: {doc_id}")
+
+        # Export the document as a PDF
+        pdf_export = drive_service.files().export(fileId=doc_id, mimeType='application/pdf').execute()
+
+        # Save the PDF to a local folder
+        local_folder = "invoices"  # Replace with the path to your desired local folder
+        os.makedirs(local_folder, exist_ok=True)
+        pdf_filename = f"{year}-{month:02d}-Franco-Invoice.pdf"
+        pdf_path = os.path.join(local_folder, pdf_filename)
+
+        with open(pdf_path, "wb") as f:
+            f.write(pdf_export)
+
+        logger.info(f"PDF saved to: {pdf_path}")
+
         return doc_id
 
     except HttpError as error:
